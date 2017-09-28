@@ -138,6 +138,7 @@ class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         None, in which case the caller has nothing further to do.
 
         """
+
         path = self.translate_path(self.path)
         f = None
         if os.path.isdir(path):
