@@ -13,14 +13,16 @@ __all__ = ["SimpleHTTPRequestHandler"]
 __author__ = "bones7456"
 __home_page__ = "http://li2z.cn/"
 
+import cgi
+import http.server
+import mimetypes
 import os
 import posixpath
-import http.server
-import urllib.request, urllib.parse, urllib.error
-import cgi
-import shutil
-import mimetypes
 import re
+import shutil
+import urllib.error
+import urllib.parse
+import urllib.request
 from io import BytesIO
 
 
@@ -84,6 +86,7 @@ class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         content_type = self.headers['content-type']
         if not content_type:
             return (False, "Content-Type header doesn't contain boundary")
+        print('contentType:%s' % content_type)
         boundary = content_type.split("=")[1].encode()
         remainbytes = int(self.headers['content-length'])
         line = self.rfile.readline()
@@ -97,6 +100,7 @@ class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             return (False, "Can't find out file name...")
         path = self.translate_path(self.path)
         fn = os.path.join(path, fn[0])
+        # 空两行
         line = self.rfile.readline()
         remainbytes -= len(line)
         line = self.rfile.readline()
@@ -113,7 +117,7 @@ class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             remainbytes -= len(line)
             if boundary in line:
                 preline = preline[0:-1]
-                if preline.endswith(b'\r'):
+                if preline.endswith(b'\r'):  # 去掉\r
                     preline = preline[0:-1]
                 out.write(preline)
                 out.close()
@@ -143,6 +147,7 @@ class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                 self.send_header("Location", self.path + "/")
                 self.end_headers()
                 return None
+            # 有首页
             for index in "index.html", "index.htm":
                 index = os.path.join(path, index)
                 if os.path.exists(index):
