@@ -8,34 +8,28 @@ import os
 import shutil
 from http import HTTPStatus
 from pydoc import html
-
+import html
 import sys
 
 from io import BytesIO
+import re
 
 
 class RequestHandler(http.server.SimpleHTTPRequestHandler):
-    # Page to send back.
-    Page = '''\
-    <html>
-    <body>
-    <p>Hello, web!</p>
-    </body>
-    </html>
-    '''
+
 
     def do_GET(self):
-       f= self.send_head()
-       if f:
-           shutil.copyfileobj(f,self.wfile)
-           f.close()
+        f = self.send_head()
+        if f:
+            shutil.copyfileobj(f, self.wfile)
+            f.close()
 
-        # self.send_response(200)
-        # self.send_header("Content-type", "text/html")
-        # self.send_header("Content-Length", str(len(self.Page)))
-        # self.end_headers()
-        #
-        # self.wfile.write(self.Page.encode())
+            # self.send_response(200)
+            # self.send_header("Content-type", "text/html")
+            # self.send_header("Content-Length", str(len(self.Page)))
+            # self.end_headers()
+            #
+            # self.wfile.write(self.Page.encode())
 
     def do_HEAD(self):
         # 处理当前的路径
@@ -43,9 +37,84 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
         if f:
             f.close()
 
+    def do_POST(self):
+        '''handle post request'''
+        r, info = self.deal_post_data()
+        print((r, info, "by: ", self.client_address))
+        f = BytesIO()
+        f.write(b'<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">')
+        f.write(b"<html>\n<title>Upload Result Page</title>\n")
+        f.write(b"<body>\n<h2>Upload Result Page</h2>\n")
+        f.write(b"<hr>\n")
+        if r:
+            f.write(b"<strong>Success:</strong>")
+        else:
+            f.write(b"<strong>Failed:</strong>")
+        f.write(info.encode())
+        f.write(("<br><a href=\"%s\">back</a>" % self.headers['referer']).encode())
+        f.write(b"<hr><small>Powerd By: bones7456, check new version at ")
+        f.write(b"<a href=\"http://li2z.cn/?s=SimpleHTTPServerWithUpload\">")
+        f.write(b"here</a>.</small></body>\n</html>\n")
+        length = f.tell()
+        f.seek(0)
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.send_header("Content-Length", str(length))
+        self.end_headers()
+        if f:
+            self.copyfile(f, self.wfile)
+            f.close()
+
+    def deal_post_data(self):
+        content_type = self.headers['content-type']
+        if not content_type:
+            return False,"has not content type"
+        boundary = content_type.split("=")[1].encode()
+
+        remainbytes = int(self.headers['content-length'])
+        line = self.rfile.readline()
+        remainbytes -= len(line)
+        if not boundary in line:
+            return (False, "Content NOT begin with boundary")
+        line = self.rfile.readline()
+        remainbytes -= len(line)
+        # 正则表达式
+        fn = re.findall(r'Content-Disposition.*name="file"; filename="(.*)"', line.decode())
+        if not fn:
+            return (False, "Can't find out file name...")
+        path = self.translate_path(self.path)
+        fn = os.path.join(path, fn[0])
+        # 空两行
+        line = self.rfile.readline()
+        remainbytes -= len(line)
+        line = self.rfile.readline()
+        remainbytes -= len(line)
+        try:
+            out = open(fn, 'wb')
+        except IOError:
+            return (False, "Can't create file to write, do you have permission to write?")
+
+        preline = self.rfile.readline()
+        remainbytes -= len(preline)
+        while remainbytes > 0:
+            line = self.rfile.readline()
+            remainbytes -= len(line)
+            if boundary in line:
+                preline = preline[0:-1]
+                if preline.endswith(b'\r'):  # 去掉\r
+                    preline = preline[0:-1]
+                out.write(preline)
+                out.close()
+                return (True, "File '%s' upload success!" % fn)
+            else:
+                out.write(preline)
+                preline = line
+        return (False, "Unexpect Ends of data.")
+
+
     def send_head(self):
         path = self.translate_path(self.path)
-        if  (os.path.isdir(path)):  # 重定向
+        if (os.path.isdir(path)):  # 重定向
             if not self.path.endswith('/'):
                 self.send_response(HTTPStatus.MOVED_PERMANENTLY)
                 self.send_header("Location", self.path + "/")
@@ -71,7 +140,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         return f
 
-    def list_directory(self,path):
+    def list_directory(self, path):
         """Helper to produce a directory listing (absent index.html).
 
                Return value is either a file object, or None (indicating an
@@ -94,7 +163,8 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
         except UnicodeDecodeError:
             displaypath = urllib.parse.unquote(path)
 
-        displaypath = cgi.escape(urllib.parse.unquote(displaypath))
+        displaypath = html.escape(displaypath, False)#转义字符串
+        # displaypath = cgi.escape(displaypath)
         enc = sys.getfilesystemencoding()
         title = 'Directory listing for %s' % displaypath
         r.append('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" '
