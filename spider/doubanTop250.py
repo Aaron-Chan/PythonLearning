@@ -6,6 +6,7 @@ import requests
 from bs4 import BeautifulSoup
 
 # 先看下豆瓣top250的html结构
+#
 # 总计分析html方法
 # 编码找出对应信息并打印
 # 看如何用echart表示
@@ -13,21 +14,61 @@ custom_headers = {'user-agent': CHROME_USER_AGENT}
 
 
 class MovieInfo:
-    '''电影信息'''
+    '''电影信息 名称 导演  主演 编剧 评分 国家'''
 
-    def __init__(self, name, rating_num, director):
+    def __init__(self, name, rating_num, director, script_writer, country):
         self.name = name
         self.rating_num = rating_num
         self.director = director
+        self.script_writer = script_writer
+        self.country = country
+
+
+movies_url_list = []
 
 
 def test():
     for star_page in range(0, 250, 25):
         url = "%s?start=%s&filter=" % (DOU_BAN_URL, star_page)
-        request(url)
+        getMovieUrl(url)
+    print(len(movies_url_list))
+    for movie_url in movies_url_list:
+        requestMovieUrl(movie_url)
 
 
-def request(url):
+def requestMovieUrl(movie_url):
+    print(movie_url)
+    r = requests.get(movie_url, headers=custom_headers)
+    if not r.status_code == 200:
+        print("response not ok")
+        return False
+    soup = BeautifulSoup(r.content)
+
+    content = soup.find('div', attrs={'id': 'content'})
+    print(content)
+    title = content.find('span', attrs={'property': 'v:itemreviewed'}).getText()
+    year = content.find('span', attrs={'class': 'year'}).getText()
+
+    director = content.find('a', attrs={'rel': 'v:directedBy'}).getText()
+    print(title)
+    print(year)
+    print(director)
+
+    starings = content.find_all('a', attrs={'rel': 'v:starring'})
+
+    rating_num = content.find('strong', attrs={'property': 'v:average'}).getText()
+    print(rating_num)
+
+    for star in starings:
+        print(star.getText())
+
+    pls = content.find_all('span', attrs={'class': 'pl'})
+    for pl in pls:
+
+        print(pl)
+
+
+def getMovieUrl(url):
     print(url)
     r = requests.get(url, headers=custom_headers)
     if not r.status_code == 200:
@@ -40,11 +81,19 @@ def request(url):
 
     for item in movies_list.find_all('li'):
         detail = item.find('div', attrs={'class': 'info'})
-        movie_title = detail.find('div', attrs={'class': 'hd'}).find('span', attrs={'class', 'title'}).getText()
-        rating_num = detail.find('div', attrs={'class': 'bd'}).find('span', attrs={'class', 'rating_num'}).getText()
-        print('%s:%s' % (movie_title, rating_num))
+        hd = detail.find('div', attrs={'class': 'hd'})
+        movie_title = hd.find('span', attrs={'class', 'title'}).getText()
+        movie_url = hd.a['href']
+        # rating_num = detail.find('div', attrs={'class': 'bd'}).find('span', attrs={'class', 'rating_num'}).getText()
+        print(movie_url)
+        if movie_url:
+            movies_url_list.append(movie_url)
     return True
 
 
+def test1():
+    requestMovieUrl("https://movie.douban.com/subject/1292052/")
+
+
 if __name__ == '__main__':
-    test()
+    test1()
