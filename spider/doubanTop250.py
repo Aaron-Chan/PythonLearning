@@ -4,7 +4,7 @@ CHROME_USER_AGENT = 'User-Agent:Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit
 
 import requests
 from bs4 import BeautifulSoup
-
+import re
 # 先看下豆瓣top250的html结构
 #
 # 总计分析html方法
@@ -15,16 +15,16 @@ custom_headers = {'user-agent': CHROME_USER_AGENT}
 
 class MovieInfo:
     '''电影信息 名称 导演  主演 编剧 评分 国家'''
-
-    def __init__(self, name, rating_num, director, script_writer, country):
+    def __init__(self, name, rating_num, director, staring_list, country):
         self.name = name
         self.rating_num = rating_num
         self.director = director
-        self.script_writer = script_writer
+        self.staring_list = staring_list
         self.country = country
 
 
 movies_url_list = []
+movies_info_list = []
 
 
 def test():
@@ -45,9 +45,11 @@ def requestMovieUrl(movie_url):
     soup = BeautifulSoup(r.content)
 
     content = soup.find('div', attrs={'id': 'content'})
-    print(content)
+
     title = content.find('span', attrs={'property': 'v:itemreviewed'}).getText()
     year = content.find('span', attrs={'class': 'year'}).getText()
+    year= re.sub('[(|)]','',year)
+
 
     director = content.find('a', attrs={'rel': 'v:directedBy'}).getText()
     print(title)
@@ -58,14 +60,13 @@ def requestMovieUrl(movie_url):
 
     rating_num = content.find('strong', attrs={'property': 'v:average'}).getText()
     print(rating_num)
-
+    staring_list=[]
     for star in starings:
-        print(star.getText())
+        staring_list.append(star.getText())
 
-    pls = content.find_all('span', attrs={'class': 'pl'})
-    for pl in pls:
-
-        print(pl)
+    country = content.find('span',attrs={'class': 'pl'},text='制片国家/地区:').next_sibling.string.strip()
+    movie_info = MovieInfo(title,rating_num,director,staring_list,country)
+    movies_info_list.append(movie_info)
 
 
 def getMovieUrl(url):
@@ -96,4 +97,5 @@ def test1():
 
 
 if __name__ == '__main__':
-    test1()
+    test()
+    print(len(movies_info_list))
