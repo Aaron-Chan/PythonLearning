@@ -1,5 +1,6 @@
 import scrapy
 import logging
+from  scrapy import Request
 
 
 class douban_spider(scrapy.Spider):
@@ -15,8 +16,9 @@ class douban_spider(scrapy.Spider):
             logging.debug('title %s rating num %s' % (title, rating_num))
 
         next_btn = response.xpath('//*[@id="content"]/div/div[1]/div[2]/span[3]')
-        # nextUrl = base_url +next_btn.xpath('//a/@href').extract()
-        # if(nextUrl):
+        logging.debug(next_btn.xpath('.//a/@href').extract())
 
+        nextUrl = self.base_url + next_btn.xpath('.//a/@href').extract()[0]
 
-
+        if (nextUrl):
+            yield Request(nextUrl, callback=self.parse)
