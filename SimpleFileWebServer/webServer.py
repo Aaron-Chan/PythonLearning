@@ -236,7 +236,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
 
 
 def run(server_class=http.server.HTTPServer, handler_class=RequestHandler):
-    server_address = ('', 8000)
+    server_address = ('192.168.0.157', 8000)
     httpd = server_class(server_address, handler_class)
     httpd.serve_forever()
 
