@@ -83,7 +83,7 @@ def getMovieUrl(url):
     for item in movies_list.find_all('li'):
         detail = item.find('div', attrs={'class': 'info'})
         hd = detail.find('div', attrs={'class': 'hd'})
-        movie_title = hd.find('span', attrs={'class', 'title'}).getText()
+        # movie_title = hd.find('span', attrs={'class', 'title'}).getText()
         movie_url = hd.a['href']
         # rating_num = detail.find('div', attrs={'class': 'bd'}).find('span', attrs={'class', 'rating_num'}).getText()
         print(movie_url)
