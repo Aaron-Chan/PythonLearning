@@ -6,6 +6,7 @@
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
 import codecs
 import json
+import pymysql
 
 class TutorialPipeline(object):
     def __init__(self):
@@ -13,5 +14,10 @@ class TutorialPipeline(object):
 
     def process_item(self, item, spider):
         line = json.dumps(dict(item)) + '\n'
-        self.file.write(line.decode("unicode_escape"))
+        self.file.write(bytearray(line,"unicode_escape").decode('utf-8'))
         return item
+
+class MySqlMoviePipeline(object):
+    def __init__(self):
+        db = pymysql.connect(host='localhost', user='root', password='123456', port=3306, db='spiders')
+

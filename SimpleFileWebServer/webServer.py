@@ -138,6 +138,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Content-Length", os.stat(path).st_size)
         self.send_header("Last-Modified", self.date_time_string(os.stat(path).st_mtime))
         self.end_headers()
+
         return f
 
     def list_directory(self, path):
